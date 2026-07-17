@@ -830,47 +830,70 @@ function initReadmoreDescription() {
     const parent = toggle.closest(".product-banner-content") || toggle.parentElement.parentElement;
     const content = parent.querySelector("[data-description-content]");
     const btnText = toggle.querySelector("span");
-    const plusIcon = toggle.querySelector(".button-plus-icon");
 
     if (!content) return;
 
     const visibleLines = parseInt(content.dataset.lines, 10) || 3;
-    const computedStyle = getComputedStyle(content);
-    let lineHeight = parseFloat(computedStyle.lineHeight);
+    let initialHeight = 0;
+    let fullHeight = 0;
+    let expanded = false;
+    let resizeTimeout = null;
 
-    // Fallback if line-height is "normal" (not a px value)
-    if (isNaN(lineHeight)) {
-      const fontSize = parseFloat(computedStyle.fontSize) || 16;
-      lineHeight = fontSize * 1.2;
+    function measure() {
+      const computedStyle = getComputedStyle(content);
+      let lineHeight = parseFloat(computedStyle.lineHeight);
+
+      // Fallback if line-height is "normal" (not a px value)
+      if (isNaN(lineHeight)) {
+        const fontSize = parseFloat(computedStyle.fontSize) || 16;
+        lineHeight = fontSize * 1.2;
+      }
+
+      initialHeight = lineHeight * visibleLines;
+
+      // Temporarily clear height to get true scrollHeight
+      const prevHeight = content.style.height;
+      const prevOverflow = content.style.overflow;
+      content.style.height = "auto";
+      content.style.overflow = "visible";
+      fullHeight = content.scrollHeight;
+      content.style.height = prevHeight;
+      content.style.overflow = prevOverflow;
     }
 
-    const initialHeight = lineHeight * visibleLines;
-    const fullHeight = content.scrollHeight;
+    function applyHeight(instant = false) {
+      const target = expanded ? fullHeight : initialHeight;
+      if (instant) {
+        gsap.set(content, { height: target, overflow: "hidden" });
+      } else {
+        gsap.to(content, {
+          height: target,
+          duration: 0.5,
+          ease: expanded ? "power2.out" : "power2.inOut",
+        });
+      }
+    }
 
-    // Start collapsed
+    // Initial measure + collapse
+    measure();
     gsap.set(content, { height: initialHeight, overflow: "hidden" });
 
-    let expanded = false;
     toggle.addEventListener("click", (e) => {
       e.preventDefault();
-      if (!expanded) {
-        // Expand
-        gsap.to(content, {
-          height: fullHeight,
-          duration: 0.5,
-          ease: "power2.out",
-        });
-        btnText.textContent = "Read Less";
-      } else {
-        // Collapse
-        gsap.to(content, {
-          height: initialHeight,
-          duration: 0.5,
-          ease: "power2.inOut",
-        });
-        btnText.textContent = "Read More";
-      }
       expanded = !expanded;
+      // Re-measure in case layout shifted since last measurement
+      measure();
+      applyHeight();
+      btnText.textContent = expanded ? "Read Less" : "Read More";
+    });
+
+    // Debounced resize handler to keep heights accurate across breakpoints
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        measure();
+        applyHeight(true); // instant, no animation on resize
+      }, 200);
     });
   });
 }
