@@ -10,6 +10,8 @@ document.addEventListener("DOMContentLoaded", function () {
   initAccordionCSS();
   initDynamicCurrentYear();
   typewriterPlaceholder();
+  initLinkIndicator();
+  initReadmoreDescription();
 });
 // Locomotive Scroll (with GSAP ScrollTrigger)
 const locomotiveScroll = new LocomotiveScroll({
@@ -55,6 +57,14 @@ function startScroll() {
 function stopScroll() {
   locomotiveScroll.stop();
 }
+
+const debounce = (fn, wait = 100) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), wait);
+  };
+};
 function initMegaNavDirectionalHover() {
   const DUR = { bgMorph: 0.4, contentIn: 0.3, contentOut: 0.2, stagger: 0.25, backdropIn: 0.3, backdropOut: 0.2, openScale: 0.35, closeScale: 0.25 };
   const HOVER_ENTER = 120;
@@ -709,13 +719,12 @@ function initCurveScroll() {
   const items = wrapper.querySelectorAll(".recovery-heading");
   const n = items.length;
 
-  const anglePerItem = 14;
-  const radius = 360;
-  const bowStrength = 0.12;
+  const state = { target: 0, current: 0 };
+  let anglePerItem = 14;
+  let radius = 360;
+  let bowStrength = 0.12;
 
   gsap.registerPlugin(ScrollTrigger);
-
-  const state = { target: 0, current: 0 };
 
   function render(activeIndex) {
     items.forEach((item, i) => {
@@ -733,6 +742,7 @@ function initCurveScroll() {
         y,
         rotation,
         scale,
+        opacity,
         transformOrigin: "left center",
       });
 
@@ -742,18 +752,125 @@ function initCurveScroll() {
 
   render(0);
 
-  ScrollTrigger.create({
-    trigger: section,
-    start: "top top",
-    end: "+=100%",
-    pin: true,
-    onUpdate: (self) => {
-      state.target = self.progress * (n - 1);
-    },
-  });
+  const mm = gsap.matchMedia();
 
-  gsap.ticker.add(() => {
-    state.current += (state.target - state.current) * 0.08;
-    render(state.current);
+  mm.add({ isDesktop: "(min-width: 768px)", isMobile: "(max-width: 767px)" }, (context) => {
+    const { isDesktop } = context.conditions;
+
+    // tune per breakpoint
+    anglePerItem = isDesktop ? 14 : 7;
+    radius = isDesktop ? 360 : 140;
+    bowStrength = isDesktop ? 0.12 : 0.06;
+
+    ScrollTrigger.create({
+      trigger: section,
+      start: isDesktop ? "top top" : "top 20%",
+      end: "+=100%",
+      pin: true,
+      onUpdate: (self) => {
+        state.target = self.progress * (n - 1);
+      },
+    });
+
+    const tick = () => {
+      state.current += (state.target - state.current) * 0.08;
+      render(state.current);
+    };
+    gsap.ticker.add(tick);
+
+    return () => {
+      gsap.ticker.remove(tick);
+    };
+  });
+}
+function initLinkIndicator() {
+  document.querySelectorAll(".plan-link-wrapper").forEach((wrapper) => {
+    const links = wrapper.querySelectorAll(".plan-link");
+    if (!links.length) return;
+
+    let indicator = wrapper.querySelector(".plan-indicator");
+    if (!indicator) {
+      indicator = document.createElement("div");
+      indicator.className = "plan-indicator";
+      wrapper.insertBefore(indicator, wrapper.firstChild);
+    }
+
+    const getActive = () => wrapper.querySelector(".plan-link.active") || links[links.length - 1];
+
+    const moveIndicator = (btn) => {
+      indicator.style.left = `${btn.offsetLeft}px`;
+      indicator.style.top = `${btn.offsetTop}px`;
+      indicator.style.width = `${btn.offsetWidth}px`;
+      indicator.style.height = `${btn.offsetHeight}px`;
+    };
+
+    const setActive = (btn) => {
+      links.forEach((l) => l.classList.remove("active"));
+      btn.classList.add("active");
+      moveIndicator(btn);
+    };
+
+    const defaultLink = links.length >= 2 ? links[1] : links[links.length - 1];
+    setActive(defaultLink);
+
+    links.forEach((link) => {
+      link.addEventListener("click", () => setActive(link));
+      link.addEventListener("mouseenter", () => moveIndicator(link));
+      link.addEventListener("mouseleave", () => moveIndicator(getActive()));
+    });
+
+    const handleResize = debounce(() => moveIndicator(getActive()), 150);
+    window.addEventListener("resize", handleResize);
+  });
+}
+function initReadmoreDescription() {
+  document.querySelectorAll("[data-description-toggle]").forEach((toggle) => {
+    // Content and toggle are siblings (each in their own wrapper div)
+    // Find the shared parent, then locate the content within it
+    const parent = toggle.closest(".product-banner-content") || toggle.parentElement.parentElement;
+    const content = parent.querySelector("[data-description-content]");
+    const btnText = toggle.querySelector("span");
+    const plusIcon = toggle.querySelector(".button-plus-icon");
+
+    if (!content) return;
+
+    const visibleLines = parseInt(content.dataset.lines, 10) || 3;
+    const computedStyle = getComputedStyle(content);
+    let lineHeight = parseFloat(computedStyle.lineHeight);
+
+    // Fallback if line-height is "normal" (not a px value)
+    if (isNaN(lineHeight)) {
+      const fontSize = parseFloat(computedStyle.fontSize) || 16;
+      lineHeight = fontSize * 1.2;
+    }
+
+    const initialHeight = lineHeight * visibleLines;
+    const fullHeight = content.scrollHeight;
+
+    // Start collapsed
+    gsap.set(content, { height: initialHeight, overflow: "hidden" });
+
+    let expanded = false;
+    toggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!expanded) {
+        // Expand
+        gsap.to(content, {
+          height: fullHeight,
+          duration: 0.5,
+          ease: "power2.out",
+        });
+        btnText.textContent = "Read Less";
+      } else {
+        // Collapse
+        gsap.to(content, {
+          height: initialHeight,
+          duration: 0.5,
+          ease: "power2.inOut",
+        });
+        btnText.textContent = "Read More";
+      }
+      expanded = !expanded;
+    });
   });
 }
