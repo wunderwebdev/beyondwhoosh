@@ -766,7 +766,8 @@ function initCurveScroll() {
       trigger: section,
       start: isDesktop ? "top top" : "top 20%",
       end: "+=100%",
-      pin: true,
+      // pin: true,
+      markers: true,
       onUpdate: (self) => {
         state.target = self.progress * (n - 1);
       },
