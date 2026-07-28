@@ -786,6 +786,46 @@ function initCurveScroll() {
     };
   });
 }
+// function initLinkIndicator() {
+//   document.querySelectorAll(".plan-link-wrapper").forEach((wrapper) => {
+//     const links = wrapper.querySelectorAll(".plan-link");
+//     if (!links.length) return;
+
+//     let indicator = wrapper.querySelector(".plan-indicator");
+//     if (!indicator) {
+//       indicator = document.createElement("div");
+//       indicator.className = "plan-indicator";
+//       wrapper.insertBefore(indicator, wrapper.firstChild);
+//     }
+
+//     const getActive = () => wrapper.querySelector(".plan-link.active") || links[links.length - 1];
+
+//     const moveIndicator = (btn) => {
+//       indicator.style.left = `${btn.offsetLeft}px`;
+//       indicator.style.top = `${btn.offsetTop}px`;
+//       indicator.style.width = `${btn.offsetWidth}px`;
+//       indicator.style.height = `${btn.offsetHeight}px`;
+//     };
+
+//     const setActive = (btn) => {
+//       links.forEach((l) => l.classList.remove("active"));
+//       btn.classList.add("active");
+//       moveIndicator(btn);
+//     };
+
+//     const defaultLink = links.length >= 2 ? links[1] : links[links.length - 1];
+//     setActive(defaultLink);
+
+//     links.forEach((link) => {
+//       link.addEventListener("click", () => setActive(link));
+//       link.addEventListener("mouseenter", () => moveIndicator(link));
+//       link.addEventListener("mouseleave", () => moveIndicator(getActive()));
+//     });
+
+//     const handleResize = debounce(() => moveIndicator(getActive()), 150);
+//     window.addEventListener("resize", handleResize);
+//   });
+// }
 function initLinkIndicator() {
   document.querySelectorAll(".plan-link-wrapper").forEach((wrapper) => {
     const links = wrapper.querySelectorAll(".plan-link");
@@ -807,10 +847,18 @@ function initLinkIndicator() {
       indicator.style.height = `${btn.offsetHeight}px`;
     };
 
+    // does this specific wrapper have the variant flag?
+    const isVariantWrapper = wrapper.hasAttribute("data-variant-link-wrapper");
+
     const setActive = (btn) => {
       links.forEach((l) => l.classList.remove("active"));
       btn.classList.add("active");
       moveIndicator(btn);
+
+      // only wrappers marked as the variant selector should trigger price/starting-price sync
+      if (isVariantWrapper) {
+        updateActiveIndexVisibility();
+      }
     };
 
     const defaultLink = links.length >= 2 ? links[1] : links[links.length - 1];
@@ -825,6 +873,43 @@ function initLinkIndicator() {
     const handleResize = debounce(() => moveIndicator(getActive()), 150);
     window.addEventListener("resize", handleResize);
   });
+}
+
+function updateActiveIndexVisibility() {
+  const variantWrapper = document.querySelector("[data-variant-link-wrapper]");
+  if (!variantWrapper) return;
+
+  const variantLinks = Array.from(variantWrapper.querySelectorAll(".plan-link"));
+  const activeIndex = variantLinks.findIndex((link) => link.classList.contains("active"));
+  if (activeIndex === -1) return;
+
+  // 1. Toggle price-wrap elements inside every .plan-link-wrapper
+  document.querySelectorAll(".plan-link-wrapper").forEach((wrapper) => {
+    wrapper.querySelectorAll(".plan-link").forEach((link) => {
+      const priceEls = link.querySelectorAll("[data-price-wrap]");
+
+      if (priceEls.length <= 1) {
+        // only one price option — always show it
+        priceEls.forEach((el) => el.classList.remove("hide"));
+        return;
+      }
+
+      priceEls.forEach((el, i) => {
+        el.classList.toggle("hide", i !== activeIndex);
+      });
+    });
+  });
+
+  // 2. Toggle data-starting-price elements the same way
+  const startingPriceEls = document.querySelectorAll("[data-starting-price]");
+
+  if (startingPriceEls.length <= 1) {
+    startingPriceEls.forEach((el) => el.classList.remove("hide"));
+  } else {
+    startingPriceEls.forEach((el, i) => {
+      el.classList.toggle("hide", i !== activeIndex);
+    });
+  }
 }
 function initVariantSwipers() {
   document.querySelectorAll(".variation-swiper").forEach((el) => {
@@ -848,82 +933,7 @@ function initVariantSwipers() {
     });
   });
 }
-// function initLinkIndicator(root = document) {
-//   root.querySelectorAll(".plan-link-wrapper").forEach((wrapper) => {
-//     const links = wrapper.querySelectorAll(".plan-link");
-//     if (!links.length) return;
 
-//     const card = wrapper.closest(".product-card");
-//     const imageWrapper = card ? card.querySelector("[data-variant-image-wrapper]") : null;
-//     const images = imageWrapper ? imageWrapper.querySelectorAll(".variation-img") : [];
-
-//     let indicator = wrapper.querySelector(".plan-indicator");
-//     if (!indicator) {
-//       indicator = document.createElement("div");
-//       indicator.className = "plan-indicator";
-//       wrapper.insertBefore(indicator, wrapper.firstChild);
-//     }
-
-//     // Use getBoundingClientRect relative to wrapper instead of offsetLeft/offsetTop.
-//     // This sidesteps offsetParent mismatches entirely.
-//     const moveIndicator = (btn) => {
-//       const wrapperRect = wrapper.getBoundingClientRect();
-//       const btnRect = btn.getBoundingClientRect();
-//       indicator.style.left = `${btnRect.left - wrapperRect.left}px`;
-//       indicator.style.top = `${btnRect.top - wrapperRect.top}px`;
-//       indicator.style.width = `${btnRect.width}px`;
-//       indicator.style.height = `${btnRect.height}px`;
-//     };
-
-//     const getActive = () => wrapper.querySelector(".plan-link.active") || links[links.length - 1];
-
-//     const setActiveImage = (index) => {
-//       if (!images.length) return;
-//       images.forEach((img, i) => img.classList.toggle("is-active", i === index));
-//     };
-
-//     const setActive = (btn) => {
-//       const index = Array.prototype.indexOf.call(links, btn);
-//       links.forEach((l) => l.classList.remove("active"));
-//       btn.classList.add("active");
-//       moveIndicator(btn);
-//       setActiveImage(index);
-//     };
-
-//     const rawActiveVariant = wrapper.getAttribute("data-active-variant");
-//     const parsedVariant = parseInt(rawActiveVariant, 10);
-//     let defaultLink;
-//     if (!isNaN(parsedVariant) && parsedVariant >= 1 && parsedVariant <= links.length) {
-//       defaultLink = links[parsedVariant - 1];
-//     } else {
-//       defaultLink = links.length >= 2 ? links[1] : links[links.length - 1];
-//     }
-
-//     // Defer the first measurement until after layout/paint has actually happened.
-//     requestAnimationFrame(() => requestAnimationFrame(() => setActive(defaultLink)));
-
-//     links.forEach((link) => {
-//       link.addEventListener("click", () => setActive(link));
-//       link.addEventListener("mouseenter", () => moveIndicator(link));
-//       link.addEventListener("mouseleave", () => moveIndicator(getActive()));
-//     });
-
-//     const handleResize = debounce(() => moveIndicator(getActive()), 150);
-//     window.addEventListener("resize", handleResize);
-//   });
-// }
-// window.fsAttributes = window.fsAttributes || [];
-// window.fsAttributes.push([
-//   "list",
-//   (listInstances) => {
-//     listInstances.forEach((instance) => {
-//       instance.addHook("afterRender", (items) => {
-//         initLinkIndicator(instance.listElement); // re-scan just the rendered list
-//         return items;
-//       });
-//     });
-//   },
-// ]);
 function initReadmoreDescription() {
   document.querySelectorAll("[data-description-toggle]").forEach((toggle) => {
     // Content and toggle are siblings (each in their own wrapper div)
