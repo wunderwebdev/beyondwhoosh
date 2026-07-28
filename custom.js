@@ -832,6 +832,9 @@ function initVariantSwipers() {
     const prevEl = wrapper.querySelector(".variant-nav.is-left");
     const nextEl = wrapper.querySelector(".variant-nav.is-right");
 
+    const activeSlideAttr = el.dataset.activeSlide;
+    const initialSlide = activeSlideAttr ? Math.max(0, parseInt(activeSlideAttr, 10) - 1) : 0;
+
     new Swiper(el, {
       slidesPerView: 1,
       loop: true,
