@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initMegaNavDirectionalHover();
   initContentRevealScroll();
   splitLinesAnimation();
+  initVariantSwipers();
   initCurveScroll();
   initVideoTileScroll();
   initAccordionCSS();
@@ -12,6 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
   typewriterPlaceholder();
   initLinkIndicator();
   initReadmoreDescription();
+  initMainProductSlider();
 });
 // Locomotive Scroll (with GSAP ScrollTrigger)
 const locomotiveScroll = new LocomotiveScroll({
@@ -824,6 +826,103 @@ function initLinkIndicator() {
     window.addEventListener("resize", handleResize);
   });
 }
+function initVariantSwipers() {
+  document.querySelectorAll(".variation-swiper").forEach((el) => {
+    const wrapper = el.closest(".product-card-center-wrapper");
+    const prevEl = wrapper.querySelector(".variant-nav.is-left");
+    const nextEl = wrapper.querySelector(".variant-nav.is-right");
+
+    new Swiper(el, {
+      slidesPerView: 1,
+      loop: true,
+      effect: "fade",
+      allowTouchMove: false,
+      fadeEffect: {
+        crossFade: true,
+      },
+      navigation: {
+        nextEl: nextEl,
+        prevEl: prevEl,
+      },
+    });
+  });
+}
+// function initLinkIndicator(root = document) {
+//   root.querySelectorAll(".plan-link-wrapper").forEach((wrapper) => {
+//     const links = wrapper.querySelectorAll(".plan-link");
+//     if (!links.length) return;
+
+//     const card = wrapper.closest(".product-card");
+//     const imageWrapper = card ? card.querySelector("[data-variant-image-wrapper]") : null;
+//     const images = imageWrapper ? imageWrapper.querySelectorAll(".variation-img") : [];
+
+//     let indicator = wrapper.querySelector(".plan-indicator");
+//     if (!indicator) {
+//       indicator = document.createElement("div");
+//       indicator.className = "plan-indicator";
+//       wrapper.insertBefore(indicator, wrapper.firstChild);
+//     }
+
+//     // Use getBoundingClientRect relative to wrapper instead of offsetLeft/offsetTop.
+//     // This sidesteps offsetParent mismatches entirely.
+//     const moveIndicator = (btn) => {
+//       const wrapperRect = wrapper.getBoundingClientRect();
+//       const btnRect = btn.getBoundingClientRect();
+//       indicator.style.left = `${btnRect.left - wrapperRect.left}px`;
+//       indicator.style.top = `${btnRect.top - wrapperRect.top}px`;
+//       indicator.style.width = `${btnRect.width}px`;
+//       indicator.style.height = `${btnRect.height}px`;
+//     };
+
+//     const getActive = () => wrapper.querySelector(".plan-link.active") || links[links.length - 1];
+
+//     const setActiveImage = (index) => {
+//       if (!images.length) return;
+//       images.forEach((img, i) => img.classList.toggle("is-active", i === index));
+//     };
+
+//     const setActive = (btn) => {
+//       const index = Array.prototype.indexOf.call(links, btn);
+//       links.forEach((l) => l.classList.remove("active"));
+//       btn.classList.add("active");
+//       moveIndicator(btn);
+//       setActiveImage(index);
+//     };
+
+//     const rawActiveVariant = wrapper.getAttribute("data-active-variant");
+//     const parsedVariant = parseInt(rawActiveVariant, 10);
+//     let defaultLink;
+//     if (!isNaN(parsedVariant) && parsedVariant >= 1 && parsedVariant <= links.length) {
+//       defaultLink = links[parsedVariant - 1];
+//     } else {
+//       defaultLink = links.length >= 2 ? links[1] : links[links.length - 1];
+//     }
+
+//     // Defer the first measurement until after layout/paint has actually happened.
+//     requestAnimationFrame(() => requestAnimationFrame(() => setActive(defaultLink)));
+
+//     links.forEach((link) => {
+//       link.addEventListener("click", () => setActive(link));
+//       link.addEventListener("mouseenter", () => moveIndicator(link));
+//       link.addEventListener("mouseleave", () => moveIndicator(getActive()));
+//     });
+
+//     const handleResize = debounce(() => moveIndicator(getActive()), 150);
+//     window.addEventListener("resize", handleResize);
+//   });
+// }
+// window.fsAttributes = window.fsAttributes || [];
+// window.fsAttributes.push([
+//   "list",
+//   (listInstances) => {
+//     listInstances.forEach((instance) => {
+//       instance.addHook("afterRender", (items) => {
+//         initLinkIndicator(instance.listElement); // re-scan just the rendered list
+//         return items;
+//       });
+//     });
+//   },
+// ]);
 function initReadmoreDescription() {
   document.querySelectorAll("[data-description-toggle]").forEach((toggle) => {
     // Content and toggle are siblings (each in their own wrapper div)
@@ -897,4 +996,43 @@ function initReadmoreDescription() {
       }, 200);
     });
   });
+}
+function initMainProductSlider() {
+  const slider = document.querySelector(".product-main-swiper");
+  if (!slider) return;
+  let productSwiper = new Swiper(slider, {
+    slidesPerView: 1,
+    effect: "fade",
+    fadeEffect: {
+      crossFade: true,
+    },
+  });
+
+  const planLinks = document.querySelectorAll(".plan-link");
+
+  function syncSwiperToActivePlan() {
+    const activeIndex = Array.from(planLinks).findIndex((link) => link.classList.contains("active"));
+    console.log("Active index detected:", activeIndex); // debug
+    if (activeIndex !== -1) {
+      productSwiper.slideTo(activeIndex);
+    }
+  }
+
+  // Observe the whole container instead of each link individually
+  const container = planLinks[0]?.closest("[data-variant-link-wrapper]") || document.body;
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === "class") {
+        syncSwiperToActivePlan();
+      }
+    });
+  });
+
+  planLinks.forEach((link) => {
+    observer.observe(link, { attributes: true, attributeFilter: ["class"] });
+  });
+
+  // sync on load too
+  syncSwiperToActivePlan();
 }
