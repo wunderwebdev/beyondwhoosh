@@ -928,17 +928,16 @@ function initVariantSwipers() {
       fadeEffect: {
         crossFade: true,
       },
+      navigation: {
+        nextEl: nextEl,
+        prevEl: prevEl,
+      },
     };
 
     if (isOcpsPage) {
       swiperOptions.autoplay = {
         delay: 3000,
         disableOnInteraction: false,
-      };
-    } else {
-      swiperOptions.navigation = {
-        nextEl: nextEl,
-        prevEl: prevEl,
       };
     }
 
