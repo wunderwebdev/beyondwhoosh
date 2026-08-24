@@ -912,57 +912,38 @@ function updateActiveIndexVisibility() {
   }
 }
 function initVariantSwipers() {
-  // document.querySelectorAll(".variation-swiper").forEach((el) => {
-  //   const wrapper = el.closest(".product-card-center-wrapper");
-  //   const prevEl = wrapper.querySelector(".variant-nav.is-left");
-  //   const nextEl = wrapper.querySelector(".variant-nav.is-right");
+  document.querySelectorAll(".variation-swiper").forEach((el) => {
+    const wrapper = el.closest(".product-card-center-wrapper");
+    const prevEl = wrapper.querySelector(".variant-nav.is-left");
+    const nextEl = wrapper.querySelector(".variant-nav.is-right");
 
-  //   new Swiper(el, {
-  //     slidesPerView: 1,
-  //     loop: true,
-  //     effect: "fade",
-  //     allowTouchMove: false,
-  //     initialSlide: parseInt(el.dataset.activeSlide, 10) - 1 || 0,
-  //     fadeEffect: {
-  //       crossFade: true,
-  //     },
-  //     navigation: {
-  //       nextEl: nextEl,
-  //       prevEl: prevEl,
-  //     },
-  //   });
-  // });
+    const isOcpsPage = document.body.matches('[page-body-class="ocps"]');
 
-  const wrapper = el.closest(".product-card-center-wrapper");
-  const prevEl = wrapper.querySelector(".variant-nav.is-left");
-  const nextEl = wrapper.querySelector(".variant-nav.is-right");
-
-  const isOcpsPage = document.body.matches('[page-body-class="ocps"]');
-
-  const swiperOptions = {
-    slidesPerView: 1,
-    loop: true,
-    effect: "fade",
-    allowTouchMove: false,
-    initialSlide: parseInt(el.dataset.activeSlide, 10) - 1 || 0,
-    fadeEffect: {
-      crossFade: true,
-    },
-  };
-
-  if (isOcpsPage) {
-    swiperOptions.autoplay = {
-      delay: 3000,
-      disableOnInteraction: false,
+    const swiperOptions = {
+      slidesPerView: 1,
+      loop: true,
+      effect: "fade",
+      allowTouchMove: false,
+      initialSlide: parseInt(el.dataset.activeSlide, 10) - 1 || 0,
+      fadeEffect: {
+        crossFade: true,
+      },
     };
-  } else {
-    swiperOptions.navigation = {
-      nextEl: nextEl,
-      prevEl: prevEl,
-    };
-  }
 
-  new Swiper(el, swiperOptions);
+    if (isOcpsPage) {
+      swiperOptions.autoplay = {
+        delay: 3000,
+        disableOnInteraction: false,
+      };
+    } else {
+      swiperOptions.navigation = {
+        nextEl: nextEl,
+        prevEl: prevEl,
+      };
+    }
+
+    new Swiper(el, swiperOptions);
+  });
 }
 
 function initReadmoreDescription() {
